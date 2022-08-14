@@ -1,4 +1,4 @@
-import {AdjListGraph} from "../DataStructure/Graph/AdjListGraph";
+import {AdjListGraph} from "../Core/DataStructure/Graph/AdjListGraph";
 
 export interface UCard {
     uniqueId: number;
