@@ -1,5 +1,4 @@
-import {OLDirectedGraph} from "../DataStructure/Graph/OLGraph";
-import {UDefine} from "./Macro";
+import {AdjListGraph} from "../DataStructure/Graph/AdjListGraph";
 
 export interface UCard {
     uniqueId: number;
@@ -7,7 +6,7 @@ export interface UCard {
 
 export abstract class UChessboard {
     private _resolvingCards: Set<UCard>;
-    private _originalResolvingCards: OLDirectedGraph<UCard>;
+    private _originalResolvingCards: AdjListGraph<UCard>;
 
     private _handCards: Array<UCard>;
     private _drawingCards: Array<UCard>;
@@ -16,7 +15,7 @@ export abstract class UChessboard {
         this._handCards = new Array<UCard>();
         this._drawingCards = new Array<UCard>();
 
-        this._originalResolvingCards = new OLDirectedGraph<UCard>();
+        this._originalResolvingCards = new AdjListGraph<UCard>();
         this._resolvingCards = new Set<UCard>();
     }
 
@@ -56,15 +55,23 @@ export abstract class UChessboard {
     public getTopResovlingCard(): UCard[] {
         let arr = new Array<UCard>();
         this._resolvingCards.forEach((card) => {
-            let outCount = 0;
-            let outCard = this._originalResolvingCards.firstOutVex(card);
-            while (outCard && this._resolvingCards.has(outCard)) {
-                outCount++;
-                outCard = this._originalResolvingCards.nextOutVex(card, outCard);
-            }
-            if (outCount === 0) {
+            let outDegree = this._originalResolvingCards.outDegree(card);
+            if (outDegree == 0) {
                 arr.push(card);
+                return;
             }
+
+            let outCards = this._originalResolvingCards.getOutVertexList(card);
+            let isTopCard = true;
+            for (let outCard of outCards) {
+                if (this._resolvingCards.has(outCard)) {
+                    isTopCard = false;
+                    break;
+                }
+            }
+            if (isTopCard)
+                arr.push(card);
+
         });
         return arr;
     }
@@ -76,14 +83,7 @@ export abstract class UChessboard {
     public isTopCardOnResolvingCards(card: UCard): boolean {
         if (!this._resolvingCards.has(card)) return false;
 
-        let outCount = 0;
-        let outCard = this._originalResolvingCards.firstOutVex(card);
-        while (outCard && this._resolvingCards.has(outCard)) {
-            outCount++;
-            outCard = this._originalResolvingCards.nextOutVex(card, outCard);
-        }
-
-        return outCount === 0;
+        return this._originalResolvingCards.getOutVertexList(card).filter((v, i) => this._resolvingCards.has(v)).length === 0;
     }
 
     /**
@@ -128,8 +128,7 @@ export abstract class UChessboard {
         if (this._resolvingCards.has(handCard)) return false;
 
         //检查是否是原始的消除区的牌
-        let originalVexIndex = this._originalResolvingCards.indexOfVex(handCard);
-        if (originalVexIndex == -1) return false;
+        if (!this._originalResolvingCards.hasVex(handCard)) return false;
 
         this._handCards.pop();
         this._resolvingCards.add(handCard);
